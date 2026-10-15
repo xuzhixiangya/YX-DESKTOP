@@ -61,7 +61,7 @@ it('hides the built-in DeepSeek menu and puts YX first', () => {
   const groups = [...document.querySelectorAll('[data-menu-group]')]
   expect(groups[0]?.querySelector('[data-menu-group-heading]')?.textContent).toBe('YX')
   expect(groups[1]?.querySelector('[data-menu-group-heading]')?.textContent).toBe('DeepSeek')
-  expect(groups[1]?.style.getPropertyValue('display')).toBe('none')
+  expect((groups[1] as HTMLElement | undefined)?.style.getPropertyValue('display')).toBe('none')
   const hiddenChoice = groups[1]?.querySelector('button')
   const yxChoice = groups[0]?.querySelector('button')
   if (!(hiddenChoice instanceof HTMLButtonElement) || !(yxChoice instanceof HTMLButtonElement)) throw new Error('missing menu rows')

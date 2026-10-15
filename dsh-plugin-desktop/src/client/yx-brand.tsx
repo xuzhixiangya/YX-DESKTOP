@@ -1,7 +1,6 @@
 /** Sidebar brand and the blank-session hero. Both use the Silverstar mark. */
 
 import { useLayoutEffect, useRef, type ReactNode, type Ref } from 'react'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { DESKTOP_DISPLAY_NAME } from '../product-identity.ts'
 
 /** Blank-session headline. Replaces the upstream "探索未至之境". */
@@ -100,7 +99,7 @@ function CompanyMark({
   )
 }
 
-export function YxBrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>): ReactNode {
+export function YxBrandMark({ size }: { readonly size: number }): ReactNode {
   return <CompanyMark size={size} />
 }
 
@@ -108,7 +107,7 @@ export function YxBrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>): React
  * One word, same size as the sidebar's own brand row. Tracking is tightened
  * so "Silverstar" reads as a wordmark instead of spaced-out text.
  */
-export function YxBrandName(_props: PropsRuntime<'sidebar.brand.name'>): ReactNode {
+export function YxBrandName(_props: { readonly children?: never }): ReactNode {
   return (
     <span style={{ letterSpacing: '-0.03em' }}>
       Silverstar
@@ -117,7 +116,7 @@ export function YxBrandName(_props: PropsRuntime<'sidebar.brand.name'>): ReactNo
 }
 
 /** Blank-session mark. The headline beside it is upstream copy, rewritten here. */
-export function YxHeroMark({ size, className }: PropsRuntime<'conversation.hero.brand.mark'>): ReactNode {
+export function YxHeroMark({ size, className }: { readonly size: number; readonly className?: string | undefined }): ReactNode {
   const mark = useRef<SVGSVGElement>(null)
   useLayoutEffect(() => {
     const node = mark.current
