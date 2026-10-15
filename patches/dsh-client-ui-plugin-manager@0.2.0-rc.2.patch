@@ -28,7 +28,168 @@ diff --git a/lib/client.js b/lib/client.js
  							bundles: keysOf("plugins.bundle.config"),
  							rows: keysOf("plugins.row.config")
  						};
-@@ -2190,9 +2196,15 @@
+@@ -159,6 +165,9 @@
+ 			installProblemNetwork: "无法连接插件源，请检查网络后重试",
+ 			installProblemNetworkAll: "所有安装源都无法连接（已尝试：{registries}），请检查网络或代理设置，或更换安装源",
+ 			installProblemUnknown: "无法获取插件信息：{reason}",
++			installGithubMirrorLabel: "GitHub 镜像",
++			installGithubMirrorHint: "只有 GitHub 仓库地址会走这里。包名仍然用安装源，本机目录按你填的路径安装。删空则直接访问 GitHub。",
++			installGithubMirrorInvalid: "镜像要写成 https:// 开头的地址，不要带账号密码。删空就可以不用镜像。",
+ 			installingTitle: "插件安装中…",
+ 			installedTitle: "已安装",
+ 			installFailedTitle: "插件安装失败",
+@@ -206,7 +215,7 @@
+ 			installAttemptBadge: "第 {index} 次 · {registry}",
+ 			installFailureNetwork: "网络连接失败",
+ 			installFailureNetworkAll: "所有安装源都无法连接（已尝试：{registries}）。请检查网络或代理设置，或更换安装源后重试。",
+-			installFailureNetworkHost: "无法连接 {host}。GitHub 地址和 .tgz 直链不经过安装源，需要本机能直接访问它或配置代理；如果这个插件也发布到了 npm，请改填包名。",
++			installFailureNetworkHost: "无法连接 {host}。GitHub 仓库走 GitHub 镜像，不走安装源；可以换一个镜像，或删空后直接访问。包名仍用安装源，本机目录不走网络。",
+ 			installFailureNotFound: "未找到相关插件",
+ 			installFailureNoMatchingVersion: "没有匹配的版本",
+ 			installFailureDiskFull: "磁盘空间不足，安装已停止",
+@@ -351,6 +360,9 @@
+ 			installProblemNetwork: "The plugin registry could not be reached; check the network and try again",
+ 			installProblemNetworkAll: "No registry could be reached (tried: {registries}); check the network or proxy settings, or change the registry",
+ 			installProblemUnknown: "The plugin could not be looked up: {reason}",
++			installGithubMirrorLabel: "GitHub mirror",
++			installGithubMirrorHint: "Used only for a GitHub repository address. A package name still uses the registry, and a local directory is installed from the path you enter. Clear this field to reach GitHub directly.",
++			installGithubMirrorInvalid: "Enter an https:// mirror address without a username or password. Clear it to skip the mirror.",
+ 			installingTitle: "Installing the plugin…",
+ 			installedTitle: "Installed",
+ 			installFailedTitle: "The plugin could not be installed",
+@@ -398,7 +410,7 @@
+ 			installAttemptBadge: "Attempt {index} · {registry}",
+ 			installFailureNetwork: "The network connection failed",
+ 			installFailureNetworkAll: "No registry could be reached (tried: {registries}). Check the network or proxy settings, or change the registry and retry.",
+-			installFailureNetworkHost: "{host} could not be reached. A GitHub address or a .tgz link is not fetched through the registry: this machine must reach it directly or through a proxy. If the plugin is also published to npm, enter its package name instead.",
++			installFailureNetworkHost: "{host} could not be reached. A GitHub repository uses the GitHub mirror, not the registry; change the mirror or clear it to reach GitHub directly. A package name still uses the registry, and a local directory does not use the network.",
+ 			installFailureNotFound: "No such plugin was found",
+ 			installFailureNoMatchingVersion: "No version matches the request",
+ 			installFailureDiskFull: "The disk is full; the install stopped",
+@@ -872,7 +884,90 @@
+ 			}
+ 			if (resolved !== "https://registry.npmjs.org/") return void 0;
+ 			return registries.fallbackRegistries.find((registry) => registry === NPMMIRROR_REGISTRY);
++		}
++		/* github-install-mirror */
++		const DEFAULT_GITHUB_MIRROR = "https://gh-proxy.com";
++		/** An https mirror prefix, "" when GitHub is reached directly, or null when the text cannot be used. */
++		function normalizeGithubMirror(value) {
++			const raw = String(value ?? "").trim().replace(/\/+$/, "");
++			if (raw === "") return "";
++			let url;
++			try {
++				url = new URL(raw);
++			} catch {
++				return null;
++			}
++			if (url.protocol !== "https:" || url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== "") return null;
++			const host = url.hostname.toLowerCase();
++			if (host === "github.com" || host === "www.github.com" || host.endsWith(".github.com") || host === "") return null;
++			if (/github\.com/i.test(url.pathname)) return null;
++			return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
++		}
++		/** owner/repo from a GitHub shorthand or repository URL. Package names, local paths, and tarballs return null. */
++		function githubRepository(spec) {
++			const trimmed = String(spec ?? "").trim();
++			if (trimmed === "" || /^(?:file|link):/i.test(trimmed)) return null;
++			if (trimmed.startsWith("/") || trimmed.startsWith("\\\\") || /^[A-Za-z]:[\\/]/.test(trimmed)) return null;
++			if (/^\.(1, 2)(?:[\\/]|$)/.test(trimmed)) return null;
++			if (/\.(?:tgz|tar\.gz)(?:#.*)?$/i.test(trimmed)) return null;
++			const hash = trimmed.indexOf("#");
++			const body = hash < 0 ? trimmed : trimmed.slice(0, hash);
++			const ref = hash < 0 ? "" : trimmed.slice(hash);
++			if (/\s/.test(ref)) return null;
++			const take = (owner, repo) => {
++				const name = repo.replace(/\.git$/i, "");
++				if (!/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(name)) return null;
++				if (owner === "." || owner === ".." || name === "." || name === "..") return null;
++				return { owner, repo: name, ref };
++			};
++			const short = /^github:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i.exec(body);
++			if (short) return take(short[1], short[2]);
++			const scp = /^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i.exec(body);
++			if (scp) return take(scp[1], scp[2]);
++			const urlText = body.replace(/^git\+/i, "");
++			if (!/^https?:\/\//i.test(urlText)) return null;
++			let url;
++			try {
++				url = new URL(urlText);
++			} catch {
++				return null;
++			}
++			if (url.username !== "" || url.password !== "" || url.search !== "") return null;
++			const host = url.hostname.toLowerCase();
++			if (host !== "github.com" && host !== "www.github.com") return null;
++			const parts = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
++			if (parts.length !== 2) return null;
++			return take(parts[0], parts[1]);
++		}
++		/** A mirror URL already pasted, normalized to the git+ form the installer accepts. */
++		function existingGithubProxySpec(spec) {
++			const trimmed = String(spec ?? "").trim();
++			const withoutGit = trimmed.replace(/^git\+/i, "");
++			if (!/^https:\/\/.+?\/https:\/\/github\.com\/[^/?#\s]+\/[^/?#\s]+?(?:\.git)?(?:#\S*)?$/i.test(withoutGit)) return null;
++			return /^git\+/i.test(trimmed) ? trimmed : `git+${withoutGit}`;
++		}
++		/**
++		* A package name or local path is unchanged. A GitHub repository uses the mirror unless the mirror is blank.
++		* @param raw - the install field.
++		* @param mirror - the GitHub mirror field.
++		* @returns the spec to install, and whether a GitHub install must stop because the mirror text is unusable.
++		*/
++		function resolvePluginInstallSpec(raw, mirror) {
++			const spec = String(raw ?? "").trim();
++			const existing = existingGithubProxySpec(spec);
++			if (existing !== null) return { spec: existing, mirrorError: false };
++			const repo = githubRepository(spec);
++			if (repo === null) return { spec, mirrorError: false };
++			const normalized = normalizeGithubMirror(mirror);
++			if (normalized === null) return { spec, mirrorError: true };
++			if (normalized === "") return { spec, mirrorError: false };
++			return {
++				spec: `git+${normalized}/https://github.com/${repo.owner}/${repo.repo}.git${repo.ref}`,
++				mirrorError: false
++			};
+ 		}
++		/* end github-install-mirror */
++		const githubMirrorMemory = (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(DEFAULT_GITHUB_MIRROR, { persist: { name: "dsh.plugin-manager.github-mirror" } });
+ 		/** Reads and mutates the profile's plugins through the `pluginManager` Remote. */
+ 		var PluginManagerController = class {
+ 			ctx;
+@@ -1276,7 +1371,7 @@
+ 			async runInstall() {
+ 				const state = this.getSnapshot();
+ 				const install = state.install;
+-				const spec = install.spec.trim();
++				let spec = install.spec.trim();
+ 				if (install.phase === "checking" || isInstallPending(install.phase) || spec === "") return;
+ 				if (this.ctx.get("productAnalytics")?.enabled) {
+ 					this.analyticsAttempt = {
+@@ -1305,9 +1400,22 @@
+ 						phase: "idle",
+ 						registryError: true,
+ 						registryOpen: true
++					});
++					return;
++				}
++				const resolved = resolvePluginInstallSpec(spec, githubMirrorMemory.getSnapshot() ?? DEFAULT_GITHUB_MIRROR);
++				if (resolved.mirrorError) {
++					this.finishAnalytics("failed", "invalid-github-mirror");
++					this.patchInstall({
++						phase: "idle",
++						inputError: {
++							problem: "invalid-github-mirror",
++							reason: spec
++						}
+ 					});
+ 					return;
+ 				}
++				spec = resolved.spec;
+ 				this.abortInspect();
+ 				const controller = new AbortController();
+ 				this.inspectAbort = controller;
+@@ -2190,9 +2298,15 @@
  			});
  		}
  		/** The top every page shares: the crumb that leads back, then the icon with the page's actions at its right. */
@@ -44,7 +205,7 @@ diff --git a/lib/client.js b/lib/client.js
  				"data-window-drag": true,
  				children: [(0, react_jsx_runtime.jsxs)("button", {
  					type: "button",
-@@ -2214,7 +2226,7 @@
+@@ -2214,7 +2328,7 @@
  			});
  		}
  		/** One package as a card that opens its page: its name, its one-liner, its tags, and its bundle switch. */
@@ -53,7 +214,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const { title, description, beta } = packageText(pkg, resolveText);
  			const status = packageStatus(pkg);
  			return (0, react_jsx_runtime.jsxs)("li", {
-@@ -2237,13 +2249,15 @@
+@@ -2237,13 +2351,15 @@
  						children: t("statusProblem")
  					}) : null] }),
  					description,
@@ -71,7 +232,7 @@ diff --git a/lib/client.js b/lib/client.js
  				}), (0, react_jsx_runtime.jsx)(MetadataError, {
  					error: pkg.meta?.error,
  					t
-@@ -2290,7 +2304,7 @@
+@@ -2290,7 +2406,7 @@
  		* contributed actions, its title with the contributed badges over its
  		* one-liner, the form the entry renders, and the contributed sections.
  		*/
@@ -80,7 +241,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const subject = {
  				kind: "item",
  				id: item.id
-@@ -2329,7 +2343,7 @@
+@@ -2329,7 +2445,7 @@
  							"data-plugin-config": true,
  							children: renderSlot("plugins.item", {
  								view: "page",
@@ -89,7 +250,55 @@ diff --git a/lib/client.js b/lib/client.js
  							}, { only: item.id })
  						}), renderSlot("plugins.detail.section", { subject })]
  					})
-@@ -3339,12 +3353,13 @@
+@@ -2567,7 +2683,8 @@
+ 			"not-a-package": "installProblemNotPackage",
+ 			"not-a-bundle": "installProblemNotBundle",
+ 			"network": "installProblemNetwork",
+-			"unknown": "installProblemUnknown"
++			"unknown": "installProblemUnknown",
++			"invalid-github-mirror": "installGithubMirrorInvalid"
+ 		};
+ 		/** The spec form the install guide shows, with an example the person can drop into the field. */
+ 		const GUIDE_EXAMPLES = [{
+@@ -2713,6 +2830,8 @@
+ 		*/
+ 		function InstallDialog({ install, t, onClose, onEditSpec, onRun, onCancel, onReconcile, onToggleDetails, onEnableNow, onApproveBuilds, onToggleRegistry, onChooseRegistry, onChangeRegistry, onUseGithubMirror }) {
+ 			const errorId = (0, react.useId)();
++			const githubMirrorHintId = (0, react.useId)();
++			const [githubMirror, setGithubMirror] = (0, react.useState)(() => githubMirrorMemory.getSnapshot() ?? DEFAULT_GITHUB_MIRROR);
+ 			const templateHintId = (0, react.useId)();
+ 			const guideId = (0, react.useId)();
+ 			const approvalId = (0, react.useId)();
+@@ -2853,6 +2972,28 @@
+ 								children: templateHint
+ 							}) : null,
+ 							(0, react_jsx_runtime.jsxs)("div", {
++								className: PluginManagerPage_module_css_default.installField,
++								children: [(0, react_jsx_runtime.jsx)("span", { children: t("installGithubMirrorLabel") }), (0, react_jsx_runtime.jsx)("input", {
++									type: "text",
++									value: githubMirror,
++									placeholder: DEFAULT_GITHUB_MIRROR,
++									disabled: checking,
++									"aria-label": t("installGithubMirrorLabel"),
++									"aria-invalid": normalizeGithubMirror(githubMirror) === null,
++									"aria-describedby": githubMirrorHintId,
++									onChange: (event) => {
++										const value = event.currentTarget.value;
++										setGithubMirror(value);
++										githubMirrorMemory.set(value);
++									}
++								})]
++							}),
++							(0, react_jsx_runtime.jsx)("p", {
++								id: githubMirrorHintId,
++								className: normalizeGithubMirror(githubMirror) === null ? PluginManagerPage_module_css_default.inputError : PluginManagerPage_module_css_default.templateHint,
++								children: t(normalizeGithubMirror(githubMirror) === null ? "installGithubMirrorInvalid" : "installGithubMirrorHint")
++							}),
++							(0, react_jsx_runtime.jsxs)("div", {
+ 								className: PluginManagerPage_module_css_default.optionsRow,
+ 								children: [(0, react_jsx_runtime.jsxs)("button", {
+ 									type: "button",
+@@ -3339,12 +3480,13 @@
  				};
  			}, [highlight, clearHighlight]);
  			const noticeLine = state.notice === null || state.notice.kind === "refresh-failed" ? null : noticeText(state.notice, t);
@@ -105,7 +314,7 @@ diff --git a/lib/client.js b/lib/client.js
  			const openItem = view.kind === "item" ? ledger.items.find((item) => item.id === view.id) : void 0;
  			const openRow = view.kind === "row" && openPkg !== void 0 ? openPkg.rows.find((row) => row.rowId === view.rowId) : void 0;
  			const showsCards = openPkg === void 0 && openItem === void 0;
-@@ -3363,8 +3378,24 @@
+@@ -3363,8 +3505,24 @@
  					});
  				}
  			});
@@ -130,7 +339,7 @@ diff --git a/lib/client.js b/lib/client.js
  				t,
  				resolveText,
  				busy: state.busy.includes(pkg.name),
-@@ -3381,7 +3412,7 @@
+@@ -3381,7 +3539,7 @@
  					props.setEnabled(pkg.name, enabled);
  				}
  			}, pkg.name);
@@ -139,7 +348,7 @@ diff --git a/lib/client.js b/lib/client.js
  				item,
  				t,
  				renderSlot,
-@@ -3416,8 +3447,10 @@
+@@ -3416,8 +3574,10 @@
  				"data-plugin-panel": true,
  				"aria-busy": state.status === "loading" || refreshing,
  				children: [
@@ -150,7 +359,7 @@ diff --git a/lib/client.js b/lib/client.js
  						"data-window-drag": true,
  						children: [(0, react_jsx_runtime.jsxs)("div", { children: [(0, react_jsx_runtime.jsx)("h1", {
  							className: PluginManagerPage_module_css_default.pageTitle,
-@@ -3478,6 +3511,18 @@
+@@ -3478,6 +3638,18 @@
  							})]
  						})]
  					}) : null,
@@ -169,7 +378,7 @@ diff --git a/lib/client.js b/lib/client.js
  					showsCards && state.status === "loading" ? (0, react_jsx_runtime.jsx)(ListSkeleton, { label: t("loading") }) : null,
  					showsCards && state.status === "unavailable" ? (0, react_jsx_runtime.jsxs)("p", {
  						className: `${PluginManagerPage_module_css_default.status} ${PluginManagerPage_module_css_default.statusWithDot}`,
-@@ -3539,6 +3584,7 @@
+@@ -3539,6 +3711,7 @@
  					}) : null,
  					loaded && openItem !== void 0 ? (0, react_jsx_runtime.jsx)(ItemDetail, {
  						form: formFor(openItem.id),
@@ -177,7 +386,7 @@ diff --git a/lib/client.js b/lib/client.js
  						item: openItem,
  						t,
  						renderSlot,
-@@ -3722,6 +3768,11 @@
+@@ -3722,6 +3895,11 @@
  					store,
  					inject: () => face,
  					children: {
@@ -189,7 +398,7 @@ diff --git a/lib/client.js b/lib/client.js
  						"plugins.item": {
  							kind: "list",
  							scope: "root"
-@@ -3783,4 +3834,4 @@
+@@ -3783,4 +3961,4 @@
  	}
  });
  
