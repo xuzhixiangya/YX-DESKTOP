@@ -1,4 +1,5 @@
 /** Narrow Host capabilities consumed by the existing plugin markets. */
+import { installSystemPromptBrand } from '../../dsh-plugin-desktop-beta/src/system-prompt-brand.ts'
 import { installHostLogging } from './host/logging.ts'
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -16,6 +17,7 @@ export const name = 'desktop-next-capabilities'
 export const inject = ['profileContext']
 
 export function apply(ctx: Context): void {
+  installSystemPromptBrand(ctx)
   installHostLogging(ctx)
   if (process.send) {
     const permissions = new HostPermissions(process)

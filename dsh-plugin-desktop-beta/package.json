@@ -16,7 +16,7 @@
   "main": "lib/main.js",
   "types": "lib/types/index.d.ts",
   "bin": {
-    "dsh-desktop-beta": "lib/bin.js",
+    "yx-desktop-beta": "lib/bin.js",
     "dsh-plugin-desktop-beta": "lib/bin.js"
   },
   "exports": {

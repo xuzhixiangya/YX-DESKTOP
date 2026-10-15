@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { desktopNativeCopy } from '../src/native-dialog-copy.ts'
+import { DESKTOP_DISPLAY_NAME } from '../src/product-identity.ts'
 import { desktopProfileCreateCopy } from '../src/profile-create-copy.ts'
 import { desktopRecoveryCopy } from '../src/recovery-copy.ts'
 import { desktopRestartConfirmationCopy, desktopTrayLabel } from '../src/tray-locale.ts'
@@ -76,6 +77,16 @@ describe('Desktop product copy', () => {
       .toBe('最后一次的桌面版/DSH 版本：未知/未知\n当前的桌面版/DSH 版本：2.0.5-beta.2/0.1.2-alpha.5')
     expect(copy.profileCompatibilityWarning).toBe('DSH 版本差异可能会导致：\n1. 历史会话信息加载出错；\n2. 当前 Profile 下的部分插件不兼容，甚至引发报错或崩溃。\n建议您切换到兼容的 Profile，或创建新的 Profile。')
     expect(copy.switchProfile).toBe('切换 Profile')
+  })
+})
+
+describe('Desktop recovery product name', () => {
+  it('renames the desktop app and leaves the DSH command line alone', () => {
+    const copy = desktopRecoveryCopy('zh')
+    expect(copy.title).toBe(`${DESKTOP_DISPLAY_NAME} 恢复助手`)
+    expect(copy.restart).toBe(`重启 ${DESKTOP_DISPLAY_NAME}`)
+    expect(copy.openTerminal).toBe('打开 DSH 终端')
+    expect(copy.dataGuideBody).toContain('DSH 数据目录')
   })
 })
 

@@ -62,7 +62,8 @@ import {
   effectiveDesktopWindowMaterial,
   type DesktopWindowMaterial,
 } from './window-material.ts'
-import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
+import { DESKTOP_DISPLAY_NAME } from './product-identity.ts'
+import { installSystemPromptBrand } from './system-prompt-brand.ts'
 import { watchPlatformLogin, type PlatformLoginAccount } from './platform-login.ts'
 import type { DesktopSetupWizardSettings } from './setup-wizard-settings.ts'
 import {
@@ -147,6 +148,7 @@ export function desktopRendererUrl(
  * @param config - validated native window values.
  */
 export function apply(ctx: Context, config: DesktopShellConfig): void {
+  installSystemPromptBrand(ctx)
   const runtime = ctx.get('desktopRuntime')
   if (runtime === undefined) {
     process.stderr.write(
@@ -435,8 +437,8 @@ export function apply(ctx: Context, config: DesktopShellConfig): void {
         url,
         authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
-        productName: DESKTOP_PRODUCT_NAME,
-        windowTitle: 'DeepSeek Harness Desktop',
+        productName: DESKTOP_DISPLAY_NAME,
+        windowTitle: DESKTOP_DISPLAY_NAME,
         iconPath,
         trayIcons,
         readLocalePreference: () => {

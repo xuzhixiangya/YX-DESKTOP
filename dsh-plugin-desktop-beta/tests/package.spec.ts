@@ -107,8 +107,8 @@ describe('published package surface', () => {
   it('registers both npm launcher names', () => {
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
+      'yx-desktop-beta': 'lib/bin.js',
       'dsh-plugin-desktop-beta': 'lib/bin.js',
-      'dsh-desktop-beta': 'lib/bin.js',
     })
     expect(manifest.bin).not.toHaveProperty('dsh-desktop')
     expect(manifest.bin).not.toHaveProperty('dsh-plugin-desktop')
@@ -122,7 +122,7 @@ describe('published package surface', () => {
     expect(productIdentity).toContain('DESKTOP_PRODUCT_IDENTITY = DESKTOP_RELEASE_IDENTITIES.beta')
     expect(productIdentity).toContain('OTHER_DESKTOP_PRODUCT_IDENTITY = DESKTOP_RELEASE_IDENTITIES.stable')
     expect(main).toContain('app.setAppUserModelId(DESKTOP_APP_ID)')
-    const setName = main.indexOf('app.setName(PRODUCT_NAME)')
+    const setName = main.indexOf('app.setName(DESKTOP_DISPLAY_NAME)')
     const start = main.indexOf('await start()', setName)
     const lock = main.indexOf('app.requestSingleInstanceLock()')
     expect(setName).toBeGreaterThanOrEqual(0)
@@ -868,7 +868,7 @@ describe('published package surface', () => {
     expect(manifest.version).toBe('2.0.17-beta.2')
     expect(manifest.name).toBe('dsh-plugin-desktop-beta')
     expect(manifest.bin).toEqual({
-      'dsh-desktop-beta': 'lib/bin.js',
+      'yx-desktop-beta': 'lib/bin.js',
       'dsh-plugin-desktop-beta': 'lib/bin.js',
     })
     expect(manifest.bin).not.toHaveProperty('dsh-desktop')
