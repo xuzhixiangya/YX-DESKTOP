@@ -6,9 +6,9 @@
  * siblings on one line and crush each other. Desktop stacks them instead.
  *
  * The rule deliberately carries no `data-dsh-desktop-mode` prefix: compatibility
- * mode serves its titlebar from a separate chrome view and never marks the body,
- * and the stylesheet only ever installs from the Desktop client bundle, which
- * exits before this point for an ordinary browser URL.
+ * mode serves its titlebar from a separate chrome view and never marks the body.
+ * The same sheet also installs for an ordinary browser on this profile, so the
+ * footer launchers stack there the same way.
  */
 
 const STYLE_ID = 'dsh-desktop-sidebar-footer-styles'

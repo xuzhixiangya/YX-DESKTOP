@@ -19,6 +19,8 @@
     "tests/client-layout-service.spec.ts",
     "tests/client-sidebar-dom-anchor.spec.ts",
     "tests/theme-presenter.spec.ts",
-    "tests/client-legacy-settings-scope.spec.ts"
+    "tests/client-legacy-settings-scope.spec.ts",
+    "tests/yx-models-chrome.spec.ts",
+    "tests/yx-account-launcher.spec.ts"
   ]
 }

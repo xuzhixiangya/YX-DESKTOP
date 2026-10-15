@@ -2,6 +2,7 @@
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
+import { YX_LOGIN_CHANNEL } from './yx-gateway.ts'
 import { DESKTOP_FILE_PATH_BRIDGE } from './file-path-bridge-contract.ts'
 import { DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL } from './directory-picker-contract.ts'
 import {
@@ -38,6 +39,10 @@ if (process.platform === 'darwin') {
 // browser tab on their Web fallbacks, and turns on the DeepSeek account entry whose
 // Platform sign-in the Host hands to the native shell (src/platform-login.ts).
 contextBridge.exposeInMainWorld('dshDesktop', Object.freeze({ protocolVersion: 1 }))
+
+contextBridge.exposeInMainWorld('dshYxLogin', {
+  login: (request: unknown) => ipcRenderer.invoke(YX_LOGIN_CHANNEL, request),
+})
 
 contextBridge.exposeInMainWorld('dshDesktopSetup', {
   read: () => ipcRenderer.invoke(SETUP_ONBOARDING_CHANNEL, { action: 'read' }),

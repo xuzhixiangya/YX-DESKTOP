@@ -406,6 +406,43 @@ const CSS = `
 .dshDesktopSettingsDialog h3 { margin: 0; color: var(--dsw-alias-state-error-primary); font-size: 16px; }
 .dshDesktopSettingsDialog p { margin: 12px 0 0; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.65; }
 .dshDesktopSettingsDialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.dshYxLogin { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 560px; }
+.dshYxLogin h1, .dshYxLogin h2, .dshYxLogin h3 { margin: 0; font-weight: 600; }
+.dshYxLogin h1 { font-size: 32px; font-weight: 500; }
+.dshYxLogin h2 { font-size: 22px; }
+.dshYxLogin h3 { font-size: 16px; }
+.dshYxLogin p { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.6; }
+.dshYxLogin form, .dshYxLogin ul { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; }
+.dshYxLogin ul { list-style: none; max-height: 280px; overflow: auto; }
+.dshYxLogin label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.dshYxLogin input[type="text"], .dshYxLogin input[type="password"], .dshYxLogin input[type="url"] {
+  box-sizing: border-box; width: 100%; min-height: 36px; padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: transparent; color: inherit;
+}
+.dshYxLoginCheck { flex-direction: row; align-items: center; gap: 8px; }
+.dshYxLoginActions { display: flex; flex-wrap: wrap; gap: 12px; }
+.dshYxLogin [role="alert"] { color: var(--dsw-alias-state-error-primary); }
+.dshYxLauncher { width: 100%; }
+.dshYxLauncherAnchor { width: 100%; }
+.dshYxLauncherTrigger {
+  user-select: none; display: flex; align-items: center; width: 100%; height: 44px; gap: 8px;
+  padding: 6px; border: 0; border-radius: var(--dsw-radius-md); background: transparent;
+  color: var(--dsw-alias-label-primary); font: inherit; font-size: 14px; cursor: pointer;
+}
+.dshYxLauncherTrigger[data-signed-out="true"] { height: 32px; padding: 6px 2px 6px 6px; line-height: 20px; }
+.dshYxLauncherTrigger[data-collapsed="true"] { box-sizing: border-box; width: 36px; height: 36px; justify-content: center; gap: 0; padding: 0; }
+.dshYxLauncherAvatar {
+  display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px;
+  border-radius: 50%; background: var(--dsw-alias-bg-skeleton); color: var(--dsw-alias-label-tertiary);
+}
+.dshYxLauncherLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshYxSignOut { display: flex; flex-direction: column; gap: 12px; }
+.dshYxSignOut h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.dshYxSignOut p { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.6; }
+.dshYxLauncherTrigger:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.dshYxLoginDialog { width: min(520px, 100%); max-height: min(80vh, 720px); overflow: auto; }
+.dshYxLoginDialogBar { display: flex; justify-content: flex-end; }
+.dshYxLoginDialog .dshYxLogin { max-width: none; }
 @media (max-width: 720px) {
   .dshDesktopSettingsChoice,
   .dshDesktopSettingsUpdateRow,

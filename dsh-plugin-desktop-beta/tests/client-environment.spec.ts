@@ -47,7 +47,8 @@ describe('desktop client environment', () => {
     try {
       apply(ctx)
       expect(inject.mock.calls.map(([name]) => name)).toEqual([
-        'settings.section', 'settings.action', 'plugins.bundle.hidden',
+        'sidebar.brand.mark', 'conversation.hero.brand.mark',
+        'settings.section', 'settings.action', 'plugins.bundle.hidden', 'settings.launcher',
       ])
       expect(effect.mock.calls.map(([, label]) => label)).not.toContain('desktop: independent compatibility frame styles')
     } finally {
@@ -55,14 +56,27 @@ describe('desktop client environment', () => {
     }
   })
 
-  it('does not activate desktop effects for an ordinary browser URL', () => {
+  it('keeps the company brand on an ordinary browser page without desktop chrome', () => {
     vi.stubGlobal('window', { location: { search: '' } })
     const effect = vi.fn()
+    const inject = vi.fn()
 
     try {
       expect(parseDesktopClientEnvironment('')).toBeUndefined()
-      apply({ effect } as unknown as ClientContext)
-      expect(effect).not.toHaveBeenCalled()
+      apply({ effect, slots: { inject } } as unknown as ClientContext)
+      expect(inject.mock.calls.map(([name]) => name)).toEqual([
+        'sidebar.brand.mark', 'conversation.hero.brand.mark', 'settings.launcher',
+      ])
+      expect(effect.mock.calls.map(([, label]) => label)).toEqual([
+        'dsh-plugin-desktop: legacy settingsScope compatibility',
+        'dsh-plugin-desktop: sidebar footer stacking styles',
+        'dsh-plugin-desktop: page title and icon',
+        'dsh-plugin-desktop: running status copy',
+        'dsh-plugin-desktop: YX login dictionaries',
+        'dsh-plugin-desktop: settings styles',
+        'dsh-plugin-desktop: YX replaces the DeepSeek provider card',
+      ])
+      expect(effect.mock.calls.map(([, label]) => label)).not.toContain('dsh-plugin-desktop: native window geometry service')
     }
     finally {
       vi.unstubAllGlobals()

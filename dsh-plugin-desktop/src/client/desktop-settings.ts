@@ -1,13 +1,17 @@
 /** Official Settings Slot registration for Desktop-owned preferences. */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { DesktopSettingsSection, type DesktopNotificationSettings, type DesktopShellSettings } from './DesktopSettingsSection.tsx'
 import { DesktopTerminalSettingsAction } from './DesktopTerminalSettingsAction.tsx'
 import { createDesktopSettingsApi } from './desktop-settings-api.ts'
 import { en, zh, type DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
+import { YxAccountLauncher, YX_ACCOUNT_LAUNCHER_PRIORITY } from './YxAccountLauncher.tsx'
+import { YX_LOGIN_LOCALE_NAMESPACE, yxLoginLocales } from './yx-login-locales.ts'
 import { installDesktopSettingsStyles } from './desktop-settings-styles.ts'
+import { installYxModelsChrome } from './yx-models-chrome.ts'
 import type { DesktopClientEnvironment } from './environment.ts'
 import {
   bindDesktopSettingsForm,
@@ -62,6 +66,33 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+/**
+ * Company sign-in and the model list.
+ * An ordinary browser has no desktop window, but it still uses this profile.
+ */
+export function applyYxAccountChrome(ctx: ClientContext): void {
+  ctx.effect(
+    () => ctx.locale.register(YX_LOGIN_LOCALE_NAMESPACE, yxLoginLocales),
+    'dsh-plugin-desktop: YX login dictionaries',
+  )
+  ctx.effect(
+    () => installDesktopSettingsStyles(),
+    'dsh-plugin-desktop: settings styles',
+  )
+  ctx.effect(
+    () => installYxModelsChrome(),
+    'dsh-plugin-desktop: YX replaces the DeepSeek provider card',
+  )
+  // Upstream already occupies this single slot at priority 0. A lower priority
+  // is the entry the sidebar renders, so sign-in opens the company gateway.
+  ctx.slots.inject('settings.launcher', () => ctx.slots.register({
+    name: 'settings.launcher',
+    priority: YX_ACCOUNT_LAUNCHER_PRIORITY,
+    locale: YX_LOGIN_LOCALE_NAMESPACE,
+    inject: () => ({ remote: ctx.remote }),
+  }, YxAccountLauncher))
+}
+
 /** Register the Desktop page in the settings.section list slot. */
 export function applyDesktopSettings(
   ctx: ClientContext,
@@ -84,10 +115,6 @@ export function applyDesktopSettings(
   ctx.effect(
     () => ctx.locale.register(DESKTOP_SETTINGS_LOCALE_NAMESPACE, { zh, en }),
     'dsh-plugin-desktop: settings dictionaries',
-  )
-  ctx.effect(
-    () => installDesktopSettingsStyles(),
-    'dsh-plugin-desktop: settings styles',
   )
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
@@ -119,6 +146,7 @@ export function applyDesktopSettings(
     name: 'plugins.bundle.hidden',
     key: 'dshmarket',
   }, () => null))
+  applyYxAccountChrome(ctx)
 
   return Object.freeze({
     api,

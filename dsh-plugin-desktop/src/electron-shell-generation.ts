@@ -15,6 +15,7 @@ import {
 } from 'electron'
 import { isDesktopSetupWizardSelection } from './setup-wizard-contract.ts'
 import { SETUP_ONBOARDING_CHANNEL } from './setup-onboarding-bridge.ts'
+import { loginYxGateway, parseYxLoginRequest, YX_LOGIN_CHANNEL } from './yx-gateway.ts'
 import { CompatibilityShell, type CompatibilityShellActions } from './compatibility-shell.ts'
 import { installEditingContextMenu, type EditingContextMenuLabels } from './context-menu.ts'
 import { formatDesktopExitCode } from './desktop-logger.ts'
@@ -395,6 +396,13 @@ export class ElectronShellGeneration {
         spec.applySetupSettings === undefined ? undefined : settings => spec.applySetupSettings!(settings))
     })
 
+    renderer.ipc.handle(YX_LOGIN_CHANNEL, async (event, request: unknown) => {
+      if (this.released || event.sender !== renderer || event.senderFrame !== renderer.mainFrame
+        || !sameOriginFrame(event.senderFrame.url, origin)) throw new Error('dsh-plugin-desktop: untrusted YX login sender')
+      const login = parseYxLoginRequest(request)
+      return await loginYxGateway((input, init) => globalThis.fetch(input, init), login)
+    })
+
     let stateWriteTimer: ReturnType<typeof setTimeout> | undefined
     const persistWindowState = (): void => {
       if (stateWriteTimer !== undefined) {
@@ -653,6 +661,7 @@ export class ElectronShellGeneration {
         renderer.ipc.removeHandler(DESKTOP_RENDERER_ACTION_CHANNEL)
         if (platform.platform === 'darwin') renderer.ipc.removeHandler(DESKTOP_NATIVE_DIRECTORY_PICKER_CHANNEL)
         renderer.ipc.removeHandler(SETUP_ONBOARDING_CHANNEL)
+        renderer.ipc.removeHandler(YX_LOGIN_CHANNEL)
       }
       if (isolated) {
         chrome.off('before-input-event', handleZoomShortcut)

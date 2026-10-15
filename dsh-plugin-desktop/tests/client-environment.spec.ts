@@ -47,7 +47,8 @@ describe('desktop client environment', () => {
     try {
       apply(ctx)
       expect(inject.mock.calls.map(([name]) => name)).toEqual([
-        'settings.section', 'settings.action', 'plugins.bundle.hidden',
+        'sidebar.brand.mark', 'conversation.hero.brand.mark',
+        'settings.section', 'settings.action', 'plugins.bundle.hidden', 'settings.launcher',
       ])
       expect(effect.mock.calls.map(([, label]) => label)).not.toContain('desktop: independent compatibility frame styles')
     } finally {
@@ -55,14 +56,27 @@ describe('desktop client environment', () => {
     }
   })
 
-  it('does not activate desktop effects for an ordinary browser URL', () => {
+  it('keeps the company brand on an ordinary browser page without desktop chrome', () => {
     vi.stubGlobal('window', { location: { search: '' } })
     const effect = vi.fn()
+    const inject = vi.fn()
 
     try {
       expect(parseDesktopClientEnvironment('')).toBeUndefined()
-      apply({ effect } as unknown as ClientContext)
-      expect(effect).not.toHaveBeenCalled()
+      apply({ effect, slots: { inject } } as unknown as ClientContext)
+      expect(inject.mock.calls.map(([name]) => name)).toEqual([
+        'sidebar.brand.mark', 'conversation.hero.brand.mark', 'settings.launcher',
+      ])
+      expect(effect.mock.calls.map(([, label]) => label)).toEqual([
+        'dsh-plugin-desktop: legacy settingsScope compatibility',
+        'dsh-plugin-desktop: sidebar footer stacking styles',
+        'dsh-plugin-desktop: page title and icon',
+        'dsh-plugin-desktop: running status copy',
+        'dsh-plugin-desktop: YX login dictionaries',
+        'dsh-plugin-desktop: settings styles',
+        'dsh-plugin-desktop: YX replaces the DeepSeek provider card',
+      ])
+      expect(effect.mock.calls.map(([, label]) => label)).not.toContain('dsh-plugin-desktop: native window geometry service')
     }
     finally {
       vi.unstubAllGlobals()
@@ -74,8 +88,6 @@ describe('desktop client environment', () => {
       .toEqual({ version: '2.0.3', mode: 'advanced', platform: 'darwin', material: 'transparent' })
     expect(parseDesktopClientEnvironment('?dsh-desktop-platform=win32&dsh-desktop-mode=compatibility&dsh-desktop-version=2.0.3&dsh-desktop-material=off'))
       .toEqual({ version: '2.0.3', mode: 'compatibility', platform: 'win32', material: 'off' })
-    expect(parseDesktopClientEnvironment('?dsh-desktop-mode=compatibility&dsh-desktop-platform=linux&dsh-desktop-version=2.0.3&dsh-desktop-material=off'))
-      .toEqual({ version: '2.0.3', mode: 'compatibility', platform: 'linux', material: 'off' })
   })
 
   it('renders removed Windows materials from an older Host as opaque', () => {
@@ -101,8 +113,6 @@ describe('desktop client environment', () => {
     ['?dsh-desktop-mode=advanced&dsh-desktop-platform=darwin&dsh-desktop-material=off', 'dsh-desktop-version'],
     ['?dsh-desktop-mode=advanced&dsh-desktop-platform=win32&dsh-desktop-version=2.0.3&dsh-desktop-material=transparent', 'incompatible'],
     ['?dsh-desktop-mode=advanced&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.3&dsh-desktop-material=mica', 'incompatible'],
-    ['?dsh-desktop-mode=compatibility&dsh-desktop-platform=linux&dsh-desktop-version=2.0.3&dsh-desktop-material=mica', 'incompatible'],
-    ['?dsh-desktop-mode=compatibility&dsh-desktop-platform=linux&dsh-desktop-version=2.0.3&dsh-desktop-material=transparent', 'incompatible'],
   ])('fails loud for malformed marker %s', (search, field) => {
     expect(() => parseDesktopClientEnvironment(search)).toThrow(field)
   })

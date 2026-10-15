@@ -18,14 +18,16 @@ import { SetupWizardApp, type EmbeddedSetupWizard } from '../native-ui/setup-wiz
 import './onboarding.css'
 import { applyAdvancedShell } from './advanced-shell.ts'
 import { startRendererBootReporter } from './boot-health.ts'
-import { applyDesktopSettings } from './desktop-settings.ts'
+import { applyDesktopSettings, applyYxAccountChrome } from './desktop-settings.ts'
 import { installDesktopDirectoryPickerBridge } from './directory-picker.ts'
 import { parseDesktopClientEnvironment } from './environment.ts'
 import { applyExtendedShell } from './extended-shell.ts'
 import { installDesktopLaunchWorkspaceBridge } from './launch-workspace.ts'
-import { DESKTOP_SETTINGS_FORMS_SERVICE } from './settings-bridge.ts'
+import { DESKTOP_SETTINGS_FORMS_SERVICE, provideLegacySettingsScope } from './settings-bridge.ts'
 import { installSidebarFooterStyles } from './sidebar-footer-styles.ts'
 import { desktopWindowService, provideDesktopWindow } from './window-service.ts'
+import { installYxPageIdentity, YxBrandMark, YxBrandName, YxHeroMark, YX_BRAND_PRIORITY } from './yx-brand.tsx'
+import { installRunningStatusCopy } from './yx-running-status.ts'
 
 export { applyAdvancedShell } from './advanced-shell.ts'
 export { applyDesktopSettings } from './desktop-settings.ts'
@@ -118,16 +120,63 @@ export const inject = [
   'locale',
   'connection',
   'remote',
+  // Login stores the gateway key through these namespaces. Naming `remote`
+  // alone does not allow reading `remote.settings` or `remote.credentials`.
+  'remote.credentials',
+  'remote.settings',
   DESKTOP_SETTINGS_FORMS_SERVICE,
   'sessions',
   'theme',
   'uiRenderer',
 ]
 
+/** Company mark, wordmark, and blank-session slogan. These do not need a desktop window. */
+function applyYxBrand(ctx: ClientContext): void {
+  // Official brand occupies these single slots at priority 0. A lower priority
+  // is what the sidebar renders, in the desktop window and in an ordinary browser.
+  ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.inject('sidebar.brand.name', () => [
+    ctx.slots.register({ name: 'sidebar.brand.mark', priority: YX_BRAND_PRIORITY }, YxBrandMark),
+    ctx.slots.register({ name: 'sidebar.brand.name', priority: YX_BRAND_PRIORITY }, YxBrandName),
+  ]))
+  // The blank-session whale is the factory fallback. Occupying the mark slot
+  // replaces it; the headline next to it is upstream copy, rewritten by the mark.
+  ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
+    name: 'conversation.hero.brand.mark',
+    priority: YX_BRAND_PRIORITY,
+  }, YxHeroMark))
+}
+
 /** Register desktop-owned client surfaces for the current BrowserWindow mode. @param ctx - browser Cordis context. */
 export function apply(ctx: ClientContext): void {
+  // Publish this before any early return. An older plugin that still injects
+  // `settingsScope` stays pending until the name exists, and an immediate
+  // plugin in that state stops the desktop window from opening.
+  ctx.effect(
+    () => provideLegacySettingsScope(ctx),
+    'dsh-plugin-desktop: legacy settingsScope compatibility',
+  )
+  applyYxBrand(ctx)
+  // Every mode shares the footer seat: upstream's row flex would otherwise let
+  // two launchers crush each other, and compatibility mode installs no frame styles.
+  ctx.effect(
+    () => installSidebarFooterStyles(),
+    'dsh-plugin-desktop: sidebar footer stacking styles',
+  )
+  ctx.effect(
+    () => installYxPageIdentity(),
+    'dsh-plugin-desktop: page title and icon',
+  )
+  ctx.effect(
+    () => installRunningStatusCopy(ctx.locale),
+    'dsh-plugin-desktop: running status copy',
+  )
   const environment = parseDesktopClientEnvironment(window.location.search)
-  if (!environment) return
+  // A normal browser URL has none of the desktop markers, on purpose: those
+  // markers also turn on the native window. The page still gets the same brand.
+  if (!environment) {
+    applyYxAccountChrome(ctx)
+    return
+  }
   ctx.effect(installUiDiagnostics, 'Desktop client failure diagnostics')
   ctx.effect(
     () => provideDesktopWindow(ctx, desktopWindowService(environment)),
@@ -137,12 +186,6 @@ export function apply(ctx: ClientContext): void {
   registerDesktopOnboarding(ctx, (snapshot, locale, finish, renderNavigation) => createElement<{ embedded?: EmbeddedSetupWizard }>(SetupWizardApp, {
     embedded: { input: snapshot.input, locale, renderNavigation, finish: selection => finish(snapshot.profile, selection) },
   }))
-  // Every mode shares the footer seat: upstream's row flex would otherwise let
-  // two launchers crush each other, and compatibility mode installs no frame styles.
-  ctx.effect(
-    () => installSidebarFooterStyles(),
-    'dsh-plugin-desktop: sidebar footer stacking styles',
-  )
   ctx.effect(
     () => startRendererBootReporter(ctx.loader),
     'dsh-plugin-desktop: renderer boot health report',
