@@ -10,7 +10,12 @@ import { createDesktopBrowserAccess } from './desktop-browser-access.ts'
 import { DesktopLanHttpsRuntime } from './lan-https-runtime.ts'
 import type { DesktopStartupGenerationHost } from './startup-generation.ts'
 import { disableAsarArchiveView } from './asar-archive-policy.ts'
+import { installLegacySettingsRegister } from './legacy-settings-register.ts'
 import { DESKTOP_PACKAGE_NAME } from './product-identity.ts'
+
+// Profile plugins such as DirectorX call settings.register while the Host is
+// still booting. The method has to exist before that apply runs.
+installLegacySettingsRegister()
 
 // The Host lists and reads user workspaces; see asar-archive-policy.ts.
 disableAsarArchiveView(import.meta.url)

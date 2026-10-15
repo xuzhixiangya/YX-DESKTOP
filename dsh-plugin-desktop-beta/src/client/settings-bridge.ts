@@ -34,3 +34,24 @@ export function bindDesktopSettingsForm<T>(
 ): DesktopSettingsForm<T> {
   return ctx.configForms.get<T>(namespace)
 }
+
+/**
+ * Older client plugins still list `settingsScope` in their inject array.
+ * Cordis will not activate them until that exact service exists, and a plugin
+ * marked immediate then blocks the whole desktop window. `bind` is the shape
+ * those plugins call; it reads the current configuration-form service.
+ */
+export const LEGACY_SETTINGS_SCOPE_SERVICE = 'settingsScope'
+
+export function provideLegacySettingsScope(ctx: ClientContext): () => void {
+  const dispose = ctx.reflect.provide(LEGACY_SETTINGS_SCOPE_SERVICE, {
+    bind<T>(request: { namespace?: string }): DesktopSettingsForm<T> {
+      const namespace = request?.namespace
+      if (typeof namespace !== 'string' || namespace.length === 0) {
+        throw new TypeError('settingsScope.bind requires a namespace')
+      }
+      return ctx.configForms.get<T>(namespace)
+    },
+  })
+  return () => { void dispose() }
+}
