@@ -1,7 +1,8 @@
 /** Independent Desktop frame portalled above the upstream content viewport. */
 
-import { LayoutTemplate, PanelTop, RefreshCw, Sparkles } from 'lucide-react'
+import { LayoutTemplate, PanelTop, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { DESKTOP_DISPLAY_NAME } from '../product-identity.ts'
 import type { DesktopSettingsApi } from './desktop-settings-api.ts'
 import type { DesktopClientEnvironment, DesktopClientMode } from './environment.ts'
 import { DesktopNativeActions } from './DesktopNativeActions.tsx'
@@ -21,57 +22,6 @@ export interface DesktopFrameTitlebarInjected {
   >
   readonly remoteControl?: { readonly seen: boolean; open(): Promise<void> }
   readonly setMode: (mode: DesktopClientMode) => Promise<void>
-}
-
-export function DesktopVersionControl({
-  version,
-  checkForUpdates,
-  t,
-}: {
-  readonly version: string
-  readonly checkForUpdates: () => Promise<void>
-  readonly t: (key: DesktopSettingsLocaleKey) => string
-}) {
-  const [checking, setChecking] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const runCheck = (): void => {
-    if (checking) return
-    setChecking(true)
-    setFailed(false)
-    void checkForUpdates()
-      .catch(() => { setFailed(true) })
-      .finally(() => { setChecking(false) })
-  }
-  const visibleVersion = `v${version}`
-  return (
-    <HoverCard>
-      <HoverCardTrigger
-        closeDelay={200}
-        delay={150}
-        render={<button type="button" className="dshDesktopFrameVersion" />}
-        aria-label={`${t('currentVersion')} ${visibleVersion}`}
-      >
-        {visibleVersion}
-      </HoverCardTrigger>
-      <HoverCardContent className="dshDesktopVersionPopover">
-        <div className="dshDesktopVersionPopoverHeader">
-          <span>{t('currentVersion')}</span>
-          <strong>{visibleVersion}</strong>
-        </div>
-        <Button
-          className="dshDesktopVersionCheckButton"
-          disabled={checking}
-          size="sm"
-          variant="outline"
-          onClick={runCheck}
-        >
-          <RefreshCw aria-hidden="true" />
-          <span>{t(checking ? 'checkingForUpdates' : 'checkForUpdates')}</span>
-        </Button>
-        {failed && <span className="dshDesktopVersionCheckError" role="alert">{t('checkForUpdatesError')}</span>}
-      </HoverCardContent>
-    </HoverCard>
-  )
 }
 
 const MODE_OPTIONS = [
@@ -175,8 +125,7 @@ export function DesktopFrameTitlebarView({ api, environment, setMode, t, remoteC
       data-material={environment.material}
     >
       <div className="dshDesktopFrameIdentity">
-        <span className="dshDesktopFrameProduct">DSH Desktop</span>
-        <DesktopVersionControl version={environment.version} checkForUpdates={api.checkForUpdates} t={t} />
+        <span className="dshDesktopFrameProduct">{DESKTOP_DISPLAY_NAME}</span>
         <DesktopModeControl
           mode={environment.mode}
           setMode={setMode}

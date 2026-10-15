@@ -18,6 +18,16 @@
       name: dsh-plugin-desktop-beta/profiles
     - id: desktop-updates
       name: dsh-plugin-desktop-beta/updates
+      config:
+        enabled: false
+
+# Official DeepSeek session-log upload is not part of this desktop. The host
+# plugin sends conversation records with official API requests, and the client
+# plugin draws the General settings switch.
+- id: session-log-deepseek
+  disabled: true
+- id: ui-settings-session-log
+  disabled: true
 
 # A desktop launch has no terminal operator waiting for the Web readiness line.
 - id: web-runtime

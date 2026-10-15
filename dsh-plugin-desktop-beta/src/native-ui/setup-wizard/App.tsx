@@ -500,14 +500,12 @@ function SetupWizardSkipDialog({
 }
 
 export function SetupWizardWelcome({
-  appVersion,
   copy,
   profileName,
   onStart,
   onSkip,
   embedded = false,
 }: {
-  readonly appVersion: string
   readonly copy: DesktopSetupWizardCopy
   readonly profileName: string
   readonly onStart: () => void
@@ -517,15 +515,8 @@ export function SetupWizardWelcome({
   return <div className="flex flex-1 items-center justify-center py-5" data-align="center" data-setup-step="welcome">
     <div className="dshSetupWelcome flex w-full max-w-xl flex-col items-stretch text-left">
       <header className="dshSetupCopy">
-      <div className="flex flex-wrap items-end gap-x-2 gap-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">{copy.welcomeTitle}</h1>
-        <Badge
-          className="mb-0.5 px-1.5 py-0 text-[10px] leading-4"
-          data-beta-placement="title-bottom-right"
-          variant="secondary"
-        >{copy.beta} · v{appVersion}</Badge>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.welcomeBody}</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.welcomeBody}</p>
       </header>
       <Card className="dshSetupOptions mt-7 w-full text-left">
         <CardContent className="space-y-3 p-5">
@@ -700,6 +691,10 @@ export function SetupWizardApp({ embedded }: { embedded?: EmbeddedSetupWizard } 
   const wizard = useRef<HTMLDivElement>(null)
   const isEmbedded = Boolean(embedded)
   useEffect(() => {
+    if (isEmbedded) return
+    document.title = copy.title
+  }, [copy.title, isEmbedded])
+  useEffect(() => {
     if (!isEmbedded) return
     wizard.current?.querySelector('main')?.scrollTo({ top: 0 })
     if (step === 'welcome') return
@@ -795,7 +790,6 @@ export function SetupWizardApp({ embedded }: { embedded?: EmbeddedSetupWizard } 
     <div className={embedded ? 'dshSetupPages' : 'flex min-h-0 flex-1 overflow-y-auto'}>
       {step === 'welcome'
         ? <SetupWizardWelcome
-          appVersion={input.appVersion}
           embedded={Boolean(embedded)}
           copy={copy}
           onSkip={skip}

@@ -44,10 +44,6 @@ function updateSection(node: HTMLElement): HTMLElement | null {
   return node.querySelector<HTMLElement>('[aria-labelledby="dsh-desktop-updates-title"]')
 }
 
-function updateButton(section: HTMLElement): HTMLButtonElement {
-  return section.querySelector<HTMLButtonElement>('button')!
-}
-
 afterEach(async () => {
   await act(async () => { root?.unmount() })
   root = undefined
@@ -56,32 +52,10 @@ afterEach(async () => {
 })
 
 describe('Desktop settings update controls', () => {
-  it('shows the installed version and runs the interactive update flow from settings', async () => {
-    const check = vi.fn(async () => {})
-    const node = await mount(check)
-    const section = updateSection(node)
-    expect(section).not.toBeNull()
-    expect(section!.textContent).toContain(zh.updatesTitle)
-    expect(section!.textContent).toContain(zh.currentVersion)
-    expect(section!.textContent).toContain('v2.0.3')
-    const button = updateButton(section!)
-    expect(button.textContent).toBe(zh.checkForUpdates)
-
-    await act(async () => { button.click() })
-
-    expect(check).toHaveBeenCalledOnce()
-    expect(button.disabled).toBe(false)
-    expect(updateButton(updateSection(node)!).textContent).toBe(zh.checkForUpdates)
-  })
-
-  it('reports a failed check inline and keeps the installed version visible', async () => {
-    const node = await mount(async () => { throw new Error('offline') })
-    const section = updateSection(node)!
-
-    await act(async () => { updateButton(section).click() })
-
-    expect(section.querySelector('[role="alert"]')?.textContent).toBe(zh.checkForUpdatesError)
-    expect(section.textContent).toContain('v2.0.3')
+  it('does not show the desktop shell version', async () => {
+    const node = await mount(async () => {})
+    expect(updateSection(node)).toBeNull()
+    expect(node.textContent).not.toContain('v2.0.3')
   })
 
   it('omits the update section where the Host cannot update itself', async () => {

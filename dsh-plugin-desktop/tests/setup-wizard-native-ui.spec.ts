@@ -138,7 +138,6 @@ describe('Setup Wizard step flow', () => {
 describe('Setup Wizard welcome page', () => {
   it('identifies the Profile and explains why first-run Desktop setup is shown', () => {
     const markup = renderToStaticMarkup(createElement(SetupWizardWelcome, {
-      appVersion: input.appVersion,
       copy,
       onSkip: () => {},
       onStart: () => {},
@@ -146,12 +145,9 @@ describe('Setup Wizard welcome page', () => {
     }))
     expect(markup).toContain('data-setup-step="welcome"')
     expect(markup).toContain(copy.welcomeTitle)
-    expect(markup).toContain(copy.beta)
-    expect(markup).toContain(`v${input.appVersion}`)
-    expect(markup).toContain('data-slot="badge"')
-    expect(markup).toContain('data-beta-placement="title-bottom-right"')
-    expect(markup).toContain('items-end')
-    expect(markup).toContain('text-[10px]')
+    expect(markup).toContain('YX Desktop')
+    expect(markup).not.toContain(`v${input.appVersion}`)
+    expect(markup).not.toContain('data-beta-placement="title-bottom-right"')
     expect(markup).toContain(copy.welcomeBody)
     expect(markup).toContain(copy.firstProfileSetup)
     expect(markup).toContain(copy.profile)
@@ -162,7 +158,6 @@ describe('Setup Wizard welcome page', () => {
 
   it('offers Start setup and confirmed Skip without ordinary arrow navigation', () => {
     const markup = renderToStaticMarkup(createElement(SetupWizardWelcome, {
-      appVersion: input.appVersion,
       copy,
       onSkip: () => {},
       onStart: () => {},

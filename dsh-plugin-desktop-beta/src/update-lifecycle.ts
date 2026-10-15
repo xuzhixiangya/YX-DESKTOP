@@ -82,14 +82,16 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
 
   constructor(private readonly options: DesktopUpdateLifecycleOptions) {
     this.stateReady = this.loadState()
-    this.registration = options.registerTrayItem({
-      id: 'check-for-updates',
-      group: 'status',
-      order: 10,
-      label: () => this.trayLabel(),
-      invoke: () => this.checkNow(),
-    })
-    this.stableRegistration = options.adapter.releaseChannel === 'beta'
+    this.registration = options.policy.enabled
+      ? options.registerTrayItem({
+          id: 'check-for-updates',
+          group: 'status',
+          order: 10,
+          label: () => this.trayLabel(),
+          invoke: () => this.checkNow(),
+        })
+      : { refresh() {}, dispose() {} }
+    this.stableRegistration = options.policy.enabled && options.adapter.releaseChannel === 'beta'
       ? options.registerTrayItem({
           group: 'status',
           order: 11,
@@ -119,6 +121,7 @@ class DesktopUpdateLifecycleOwner implements DesktopUpdateLifecycle {
   }
 
   checkNow(): Promise<void> {
+    if (!this.options.policy.enabled) return Promise.resolve()
     return this.runManualCheck()
   }
 

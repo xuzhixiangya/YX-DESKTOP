@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({ Button: () => null }))
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
@@ -12,9 +14,9 @@ import {
   DesktopNativeActions,
   DesktopRestartMenuItems,
 } from '../src/client/DesktopNativeActions.tsx'
+import { DesktopFrameTitlebarView } from '../src/client/DesktopFrameTitlebarView.tsx'
 import {
   DesktopModeControl,
-  DesktopVersionControl,
   selectDesktopFrameMode,
 } from '../src/client/ExtendedTitlebar.tsx'
 import {
@@ -527,16 +529,17 @@ describe('Desktop native action presentation', () => {
     expect(markup).toContain('aria-label="Developer options"')
   })
 
-  it('renders the Host-supplied version through the shadcn hover-card trigger', () => {
-    const markup = renderToStaticMarkup(createElement(DesktopVersionControl, {
-      version: '2.0.3',
-      checkForUpdates: api.checkForUpdates,
+  it('shows the product name without the shell version', () => {
+    const markup = renderToStaticMarkup(createElement(DesktopFrameTitlebarView, {
+      api,
+      environment: { version: '2.0.3', mode: 'extended', platform: 'darwin', material: 'off' },
+      setMode: async () => {},
       t,
     }))
 
-    expect(markup).toContain('v2.0.3')
-    expect(markup).toContain('aria-label="Current version v2.0.3"')
-    expect(markup).toContain('data-slot="hover-card-trigger"')
+    expect(markup).toContain('YX Desktop')
+    expect(markup).not.toContain('2.0.3')
+    expect(markup).not.toContain('dshDesktopFrameVersion')
   })
 
   it('renders the active presentation pill through a shadcn hover-card trigger', () => {

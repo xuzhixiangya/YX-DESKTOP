@@ -126,11 +126,13 @@ async function createHarness(options: {
   } as unknown as Context
 
   apply(ctx, options.config ?? testConfig)
-  if (tray === undefined) throw new Error('Update tray item was not registered.')
+  if (tray === undefined && options.config?.enabled !== false) {
+    throw new Error('Update tray item was not registered.')
+  }
   if (route === undefined) throw new Error('Update route was not registered.')
   return {
     statePath,
-    tray,
+    tray: tray as DesktopTrayItem,
     trays,
     notifications,
     warnings,
@@ -260,9 +262,23 @@ describe('desktop update Host plugin', () => {
     await harness.dispose()
   })
 
+  it('does not poll or offer an installer when updates are turned off', async () => {
+    vi.useFakeTimers()
+    const request = vi.fn(async () => versionResponse('2.0.0'))
+    const harness = await createHarness({
+      packaged: true,
+      request,
+      config: { ...testConfig, enabled: false },
+    })
+
+    await vi.advanceTimersByTimeAsync(testConfig.intervalMs)
+    expect(request).not.toHaveBeenCalled()
+    expect(harness.trays).toEqual([])
+    await harness.dispose()
+  })
+
   it.each([
     { packaged: false, enabled: true },
-    { packaged: true, enabled: false },
   ])('reports a manual up-to-date result while automatic polling is disabled: %#', async ({ packaged, enabled }) => {
     vi.useFakeTimers()
     const request = vi.fn(async () => versionResponse('2.0.0'))
