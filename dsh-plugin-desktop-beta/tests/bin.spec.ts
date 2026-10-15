@@ -44,8 +44,8 @@ describe('desktop npm launcher', () => {
   })
 
   it('names the installed product and selected profile behavior', () => {
-    expect(DESKTOP_CLI_HELP).toContain('DSH Desktop Beta')
-    expect(DESKTOP_CLI_HELP).toContain('Usage: dsh-plugin-desktop-beta')
+    expect(DESKTOP_CLI_HELP).toContain('Usage: yx-desktop-beta')
+    expect(DESKTOP_CLI_HELP).toContain('YX Desktop Beta')
     expect(DESKTOP_CLI_HELP).toContain('[folder]')
     expect(DESKTOP_CLI_HELP).toContain('register the folder as a workspace')
     expect(DESKTOP_CLI_HELP).toContain('selected Web-capable profile')

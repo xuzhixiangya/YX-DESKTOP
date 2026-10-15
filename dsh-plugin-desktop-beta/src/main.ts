@@ -228,8 +228,10 @@ import {
   recoverOversizedSessionProjectionCache,
   type SessionProjectionCacheRecoveryResult,
 } from './session-projcache-recovery.ts'
+import { defaultDesktopUserDataDirectory } from './desktop-user-data-directory.ts'
 import {
   DESKTOP_APP_ID,
+  DESKTOP_DISPLAY_NAME,
   DESKTOP_PACKAGE_NAME,
   DESKTOP_PRODUCT_NAME,
   DESKTOP_RELEASE_CHANNEL,
@@ -1946,7 +1948,9 @@ async function start(): Promise<void> {
 }
 
 async function run(): Promise<void> {
-  app.setName(PRODUCT_NAME)
+  // productName still names the existing data folder. The menu uses the company name.
+  app.setPath('userData', defaultDesktopUserDataDirectory())
+  app.setName(DESKTOP_DISPLAY_NAME)
   if (process.argv.includes('--export-diagnostics')) {
     try {
       await app.whenReady()

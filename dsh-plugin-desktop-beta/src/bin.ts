@@ -2,15 +2,12 @@
 
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { posix, resolve, win32 } from 'node:path'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { defaultDesktopUserDataDirectory } from './desktop-user-data-directory.ts'
 import { exportDesktopDiagnostics } from './diagnostic-export.ts'
 import { DESKTOP_WORKSPACE_ARGUMENT } from './launch-workspace-path.ts'
-import {
-  DESKTOP_PACKAGE_NAME,
-  DESKTOP_PRODUCT_NAME,
-} from './product-identity.ts'
+import { DESKTOP_COMMAND_NAME, DESKTOP_DISPLAY_NAME, DESKTOP_PACKAGE_NAME } from './product-identity.ts'
 
 /** Parsed launcher action. */
 export type DesktopCliAction = 'export-diagnostics' | 'help' | 'version' | 'launch'
@@ -24,9 +21,9 @@ export interface DesktopCliRequest {
 }
 
 /** Human-readable launcher help. */
-export const DESKTOP_CLI_HELP = `Usage: dsh-plugin-desktop-beta [options] [folder]
+export const DESKTOP_CLI_HELP = `Usage: ${DESKTOP_COMMAND_NAME} [options] [folder]
 
-Launch DSH Desktop Beta with the selected Web-capable profile.
+Launch ${DESKTOP_DISPLAY_NAME} with the selected Web-capable profile.
 
 Arguments:
   folder                register the folder as a workspace and open it
@@ -73,24 +70,7 @@ function packageVersion(): string {
   return manifest.version
 }
 
-/** Resolve the Electron user-data location without importing Electron. */
-export function defaultDesktopUserDataDirectory(
-  platform: NodeJS.Platform = process.platform,
-  environment: NodeJS.ProcessEnv = process.env,
-  homeDirectory: string = homedir(),
-): string {
-  const path = platform === 'win32' ? win32 : posix
-  if (platform === 'win32') {
-    const appData = environment.APPDATA
-    if (appData === undefined || appData.length === 0) {
-      throw new Error('APPDATA is unavailable; cannot locate DSH Desktop diagnostics')
-    }
-    return path.join(appData, DESKTOP_PRODUCT_NAME)
-  }
-  if (platform === 'darwin') return path.join(homeDirectory, 'Library', 'Application Support', DESKTOP_PRODUCT_NAME)
-  const config = environment.XDG_CONFIG_HOME
-  return path.join(config === undefined || config.length === 0 ? path.join(homeDirectory, '.config') : config, DESKTOP_PRODUCT_NAME)
-}
+export { defaultDesktopUserDataDirectory } from './desktop-user-data-directory.ts'
 
 export interface DesktopCliOptions {
   /** Override used by focused tests and recovery tooling with a non-default data root. */
