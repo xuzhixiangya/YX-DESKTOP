@@ -184,6 +184,7 @@ import {
   materializeProfile,
   ProfileMaterializationError,
 } from './profile-materializer.ts'
+import { seedCompanyDefaultPlugins } from './company-default-plugins.ts'
 import {
   formatRecoveryPluginRemoveFailure,
   removeRecoveryPlugin,
@@ -1296,6 +1297,26 @@ async function start(): Promise<void> {
       }
       await shutdown.request(recoveryResult === 'restart' || recoveryResult === 'safe-mode' ? 0 : 1)
       return
+    }
+    if (safeModePaths === undefined) {
+      try {
+        await seedCompanyDefaultPlugins({
+          appExecutable: process.execPath,
+          dshBootstrapPath,
+          profileName: activeProfileName,
+          profileDir: activeProfileDir,
+          homeDir,
+          nodeBinDir: pnpmRuntime.nodeBinDir,
+          nodeShimPath: pnpmRuntime.nodeShimPath,
+          pnpmBinDir: pnpmRuntime.pathDir,
+          electronVersion,
+          log: message => { electronLogger.info(`${BIN_NAME}: ${message}`) },
+        })
+      } catch (cause) {
+        electronLogger.error(
+          `${BIN_NAME}: company default plugins were skipped: ${cause instanceof Error ? cause.message : String(cause)}`,
+        )
+      }
     }
     startupStage = 'profile-composition'
     lifecycleRecorder.transitionStartupStage(startupStage)
